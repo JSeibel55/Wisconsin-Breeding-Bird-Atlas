@@ -4,9 +4,9 @@
     stroke-width: 2px;
 }
 .regions {
-    fill: rgb(83, 83, 83);
-    stroke: #CCC;
-    stroke-width: 1px;
+    stroke: #000;
+    stroke-width: 0.5px;
+    stroke-linecap: round;
 }
 .gratLines {
     fill: none;
@@ -17,5 +17,21 @@
     fill: rgb(183, 203, 243);
 }
 .map {
-    border: medium solid #999;
+    border: 3px solid #999;
+    margin: 10px 0 0 20px;
+}
+.chart {
+    background-color: rgba(128,128,128,.2);
+    border: 3px solid #999;
+    float: right;
+    margin: 10px 20px 0 0;
+}
+.numbers {
+    fill: white;
+    font-family: sans-serif;
+}
+.chartTitle {
+    font-family: sans-serif;
+    font-size: 1.5em;
+    font-weight: bold;
 }
