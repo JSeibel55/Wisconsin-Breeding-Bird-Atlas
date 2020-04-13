@@ -4,7 +4,7 @@
     //pseudo-global variables
     //variables for data join
     var attrArray = ["Breeding Species: BBA2", "Observed Species: BBA2", "Effort Hours: BBA2", "Breeding Species: BBA1", 
-    "Observed Species: BBA1", "Change in Breeding", "Change in Observed"]; //list of attributes
+    "Observed Species: BBA1", "Change in Breeding Birds", "Change in Observed Birds"]; //list of attributes
     var expressed = attrArray[0]; //initial attribute
 
     //chart frame dimensions
@@ -93,6 +93,13 @@
 
             //add a drop down menu
             createDropdown(csvData);
+
+            createDataInfo();
+
+            //add atlas background info
+            createBackgroundInfo();
+
+            
         };
     }; //End setMap
 
@@ -213,6 +220,47 @@
         return colorScale;
     };
 
+    //function to create diverging color scale generator (Natural Breaks)
+    function makeDivColorScale(data){
+        var colorClasses = [
+            "#ca0020",
+            "#f4a582",
+            "#f7f7f7",
+            "#92c5de",
+            "#0571b0"
+        ];
+
+        //create color scale generator
+        var colorScale = d3.scaleThreshold()
+            .range(colorClasses);
+    
+        //build array of all values of the expressed attribute
+        var domainArray = [];
+        for (var i=0; i<data.length; i++){
+            var val = parseFloat(data[i][expressed]);
+            domainArray.push(val);
+        };
+
+        var max = Math.max.apply(null, domainArray);
+    
+        //cluster data using ckmeans clustering algorithm to create natural breaks
+        var clusters = ss.ckmeans(domainArray, 5);
+        //reset domain array to cluster minimums
+        domainArray = clusters.map(function(d){
+            return d3.min(d);
+        });
+        //remove first value from domain array to create class breakpoints
+        domainArray.shift();
+    
+        //assign array of last 4 cluster minimums as domain
+        colorScale.domain(domainArray);
+    
+        // return colorScale;
+        colorScale = d3.scaleSequential(d3.interpolateRdYlBu);
+        colorScale.domain([-max, max]);
+        return colorScale;
+    };
+
     //function to create coordinated bar chart
     function setChart(csvData, colorScale){
         //create a second svg element to hold the bar chart
@@ -272,56 +320,56 @@
             .attr("height", chartInnerHeight)
             .attr("transform", translate);
 
-        updateChart(bars, csvData.length, colorScale);
+        updateChart(bars, csvData.length, colorScale, graph="normal");
     };
 
     // Return the correct chart title per the field name
     function setChartTitle(expressed){
         if (expressed === "Breeding Species: BBA2"){
-            return "Breeding Bird Species: Atlas 2 (2015-2020)"
+            return "Breeding Bird Species: Atlas 2";
         }
         else if (expressed === "Observed Species: BBA2"){
-            return "Total Observed Bird Species: Atlas 2 (2015-2020)"
+            return "Total Observed Bird Species: Atlas 2";
         }
         else if (expressed === "Effort Hours: BBA2"){
-            return "Total Effort Hours: Atlas 2 (2015-2020)"
+            return "Total Effort Hours: Atlas 2";
         }
         else if (expressed === "Breeding Species: BBA1"){
-            return "Breeding Bird Species: Atlas 1 (1995-2000)"
+            return "Breeding Bird Species: Atlas 1";
         }
         else if (expressed === "Observed Species: BBA1"){
-            return "Total Observed Bird Species: Atlas 1 (1995-2000)"
+            return "Total Observed Bird Species: Atlas 1";
         }
-        else if (expressed === "Change in Breeding"){
-            return "Change in Number of Breeding Bird Species"
+        else if (expressed === "Change in Breeding Birds"){
+            return "Change in Breeding Bird Species";
         }
-        else if (expressed === "Change in Observed"){
-            return "Change in Total Bird Species Observed"
+        else if (expressed === "Change in Observed Birds"){
+            return "Change in Total Bird Species Observed";
         }
     }
 
     // Return the correct label title per the field name
     function setLabelTitle(expressed){
         if (expressed === "Breeding Species: BBA2"){
-            return "Breeding Bird Species"
+            return "Breeding Bird Species";
         }
         else if (expressed === "Observed Species: BBA2"){
-            return "Observed Bird Species"
+            return "Observed Bird Species";
         }
         else if (expressed === "Effort Hours: BBA2"){
-            return "Total Effort Hours"
+            return "Total Effort Hours";
         }
         else if (expressed === "Breeding Species: BBA1"){
-            return "Breeding Bird Species"
+            return "Breeding Bird Species";
         }
         else if (expressed === "Observed Species: BBA1"){
-            return "Observed Bird Species"
+            return "Observed Bird Species";
         }
-        else if (expressed === "Change in Breeding"){
-            return "Change in Number of Breeding Bird Species"
+        else if (expressed === "Change in Breeding Birds"){
+            return "Change in Number of Breeding Bird Species";
         }
-        else if (expressed === "Change in Observed"){
-            return "Change in Total Bird Species Observed"
+        else if (expressed === "Change in Observed Birds"){
+            return "Change in Total Bird Species Observed";
         }
     }
 
@@ -335,7 +383,7 @@
             yAxis.scale(yScale);
             axis.call(yAxis);
         }
-        else if (expressed === "Change in Breeding" || expressed === "Change in Observed"){
+        else if (expressed === "Change in Breeding Birds" || expressed === "Change in Observed Birds"){
             yScale = d3.scaleLinear()
                 .range([(chartHeight-10), 0])
                 .domain([-30, 60]);
@@ -385,9 +433,41 @@
 
         //recreate the color scale
         var colorScale = makeColorScale(csvData);
+        var divColorScale = makeDivColorScale(csvData);
 
-        //recolor enumeration units
-        var counties = d3.selectAll(".counties")
+        if (expressed === "Change in Breeding Birds" || expressed === "Change in Observed Birds"){
+            //recolor enumeration units
+            var counties = d3.selectAll(".counties")
+            .transition()
+            .duration(1000)
+            .style("fill", function(d){
+                var value = d.properties[expressed];
+                if(value) {
+                    return divColorScale(value);
+                } else {
+                    return "#fff";
+                }
+            });
+
+            //re-sort, resize, and recolor bars
+            var bars = d3.selectAll(".bars")
+                //re-sort bars
+                .sort(function(a, b){
+                    return b[expressed] - a[expressed];
+            })
+            .transition() //add animation
+            .delay(function(d, i){
+                return i * 20;
+            })
+            .duration(500);
+
+            updateChartScale(expressed);
+
+            updateChart(bars, csvData.length, divColorScale, graph="diverging");
+        }
+        else{
+            //recolor enumeration units
+            var counties = d3.selectAll(".counties")
             .transition()
             .duration(1000)
             .style("fill", function(d){
@@ -397,29 +477,33 @@
                 } else {
                     return "#ccc";
                 }
-        });
+            });
 
-        //re-sort, resize, and recolor bars
-        var bars = d3.selectAll(".bars")
-            //re-sort bars
-            .sort(function(a, b){
-                return b[expressed] - a[expressed];
-        })
-        .transition() //add animation
-        .delay(function(d, i){
-            return i * 20
-        })
-        .duration(500);
+            //re-sort, resize, and recolor bars
+            var bars = d3.selectAll(".bars")
+                //re-sort bars
+                .sort(function(a, b){
+                    return b[expressed] - a[expressed];
+            })
+            .transition() //add animation
+            .delay(function(d, i){
+                return i * 20;
+            })
+            .duration(500);
 
-        updateChartScale(expressed);
+            updateChartScale(expressed);
 
-        updateChart(bars, csvData.length, colorScale);
+            updateChart(bars, csvData.length, colorScale, graph="normal");
+        }
+
+        updateDataInfo(expressed);
     };
 
     //function to position, size, and color bars in chart
-    function updateChart(bars, n, colorScale){
-        //position bars
-        bars.attr("x", function(d, i){
+    function updateChart(bars, n, colorScale, graph){
+        if(graph === "normal"){
+            //position bars
+            bars.attr("x", function(d, i){
                 return i * (chartInnerWidth / n) + leftPadding;
             })
             //size/resize bars
@@ -437,8 +521,46 @@
                 } else {
                     return "#ccc";
                 }
-        });
-
+            });
+        }
+        else if (graph === "diverging"){
+            //position bars
+            bars.attr("x", function(d, i){
+                return i * (chartInnerWidth / n) + leftPadding;
+            })
+            //size/resize bars
+            .attr("height", function(d, i){
+                if (d[expressed] > 0){
+                    return chartHeight - yScale(parseFloat(d[expressed])) - chartHeight/3 - topBottomPadding;
+                } else if (d[expressed] < 0) {
+                    console.log(Math.abs(yScale(parseFloat(d[expressed]))));
+                    return Math.abs(yScale(parseFloat(d[expressed]))) - chartHeight/1.5 + topBottomPadding;
+                } else {
+                    return 1;
+                }
+            })
+            .attr("y", function(d, i){
+                if (d[expressed] > 0){
+                    return yScale(parseFloat(d[expressed])) + topBottomPadding;
+                } else if (d[expressed] < 0) {
+                    return yScale(parseFloat(0)) + topBottomPadding + 1;
+                } else {
+                    return yScale(parseFloat(0)) + topBottomPadding;
+                }
+            })
+            //color/recolor bars
+            .style("fill", function(d){
+                var value = d[expressed];
+                if(value == 0) {
+                    return "#fff"
+                } else if (value > 0 || value < 0) {
+                    return colorScale(value);
+                } else {
+                    return "#ccc";
+                }
+            });
+        }
+        
         var chartTitle = d3.select(".chartTitle")
             .text(setChartTitle(expressed));
     };
@@ -517,6 +639,56 @@
         d3.select(".infolabel")
             .style("left", x + "px")
             .style("top", y + "px");
+    };
+
+    //function to create a div for the background info
+    function createBackgroundInfo(){
+        //add select element
+        $('body').append('<div id="background">The Wisconsin Breeding Bird Atlas \
+        is a comprehensive field survey documenting the distribution and abundance \
+        of birds breeding across the state. Birds are an essential part of Wisconsin’s \
+        culture and ecology. Yet many species face grave threats from habitat loss, climate \
+        change, and other human-caused pressures that nearly one-third are imperiled or will \
+        be without intervention. The first Wisconsin Breeding Bird Atlas was conducted from \
+        1995 until 2000 with the second Atlas following in 2015 until 2020. The information \
+        collected between the two surveys allow biologists to measure changes in bird populations \
+        from the first survey to the second and to measure future changes. These insights will help \
+        biolgists to identify the conservation needs of breeding birds and better meet those needs.</div>');
+    };
+
+    //function to create a div for the current data display info
+    function createDataInfo(){
+        //add select element
+        $('body').append('<div id="info-wrapper"></div>');
+        $('#info-wrapper').html('<div id="filler"></div>');
+        $('#info-wrapper').append('<div id="datainfo">*The number of confirmed breeding bird species within the county during Atlas 2.</div>');
+    };
+
+    //function to create a div for the current data display info
+    function updateDataInfo(expressed){
+        //change data contents
+        if (expressed === "Breeding Species: BBA2"){
+            $('#datainfo').html('*The number of confirmed breeding bird species within a county during Atlas 2 (2015-2020).');
+        }
+        else if (expressed === "Observed Species: BBA2"){
+            $('#datainfo').html('*The total number of bird species observed within the county during Atlas 2 (2015-2020).');
+        }
+        else if (expressed === "Effort Hours: BBA2"){
+            $('#datainfo').html('*The total amount of hours that surveyors put into the county searching for bird species during Atlas 2 (2015-2020). \
+            <br><br> *The effort hours were not recorded during Atlas 1 and are not visualized in this dataset.');
+        }
+        else if (expressed === "Breeding Species: BBA1"){
+            $('#datainfo').html('*The number of confrimed breeding bird species within the county during Atlas 1 (1995-2000).');
+        }
+        else if (expressed === "Observed Species: BBA1"){
+            $('#datainfo').html('*The total number of bird species observed within the county during Atlas 1 (1995-2000).');
+        }
+        else if (expressed === "Change in Breeding Birds"){
+            $('#datainfo').html('*The change in number of confirmed breeding bird species from Atlas 1 to Atlas 2');
+        }
+        else if (expressed === "Change in Observed Birds"){
+            $('#datainfo').html('*The change in number of observed bird species from Atlas 1 to Atlas 2');
+        }
     };
 
 })(); //last line of main.js
