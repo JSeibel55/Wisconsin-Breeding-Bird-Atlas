@@ -10,7 +10,7 @@
     //chart frame dimensions
     var chartWidth = window.innerWidth * 0.535,
         chartHeight = 560,
-        leftPadding = 35,
+        leftPadding = 50,
         rightPadding = 2,
         topBottomPadding = 5,
         chartInnerWidth = chartWidth - leftPadding - rightPadding,
@@ -20,7 +20,7 @@
     //create a scale to size bars proportionally to frame
     var yScale = d3.scaleLinear()
         .range([(chartHeight-10), 0])
-        .domain([0, 200]);
+        .domain([0, 220]);
 
     //create vertical axis generator
     var yAxis;
@@ -28,6 +28,11 @@
     
     //begin script when window loads
     window.onload = setMap();
+    // Adjust for mobile screens
+    if ($(window).width() < 600){
+        chartWidth = window.innerWidth,
+        chartInnerWidth = chartWidth - leftPadding - rightPadding;
+    }
     
     //set up choropleth map
     function setMap(){
@@ -45,11 +50,21 @@
 
         //create Albers equal area conic projection centered on France
         var projection = d3.geoAlbers()
-            .center([0.00, 44.75])
+            .center([0.00, 44.85])
             .rotate([90.00, 0.00, 0])
             .parallels([29.5, 45.5])
             .scale(6000.00)
             .translate([width / 2, height / 2]);
+
+        // Change projection for mobile screens
+        if ($(window).width() < 600){
+            projection = d3.geoAlbers()
+            .center([-1.75, 44.85])
+            .rotate([90.00, 0.00, 0])
+            .parallels([29.5, 45.5])
+            .scale(4000.00)
+            .translate([width / 2, height / 2]);
+        }
 
         var path = d3.geoPath()
         .projection(projection);
@@ -243,19 +258,6 @@
 
         var max = Math.max.apply(null, domainArray);
     
-        //cluster data using ckmeans clustering algorithm to create natural breaks
-        var clusters = ss.ckmeans(domainArray, 5);
-        //reset domain array to cluster minimums
-        domainArray = clusters.map(function(d){
-            return d3.min(d);
-        });
-        //remove first value from domain array to create class breakpoints
-        domainArray.shift();
-    
-        //assign array of last 4 cluster minimums as domain
-        colorScale.domain(domainArray);
-    
-        // return colorScale;
         colorScale = d3.scaleSequential(d3.interpolateRdYlBu);
         colorScale.domain([-max, max]);
         return colorScale;
@@ -382,19 +384,24 @@
 
             yAxis.scale(yScale);
             axis.call(yAxis);
-        }
-        else if (expressed === "Change in Breeding Birds" || expressed === "Change in Observed Birds"){
+        } else if (expressed === "Change in Breeding Birds"){
             yScale = d3.scaleLinear()
                 .range([(chartHeight-10), 0])
                 .domain([-30, 60]);
 
             yAxis.scale(yScale);
             axis.call(yAxis);
-        }
-        else{
+        } else if (expressed === "Change in Observed Birds"){
             yScale = d3.scaleLinear()
                 .range([(chartHeight-10), 0])
-                .domain([0, 200]);
+                .domain([-30, 90]);
+
+            yAxis.scale(yScale);
+            axis.call(yAxis);
+        } else{
+            yScale = d3.scaleLinear()
+                .range([(chartHeight-10), 0])
+                .domain([0, 220]);
 
             yAxis.scale(yScale);
             axis.call(yAxis);
@@ -501,6 +508,7 @@
 
     //function to position, size, and color bars in chart
     function updateChart(bars, n, colorScale, graph){
+        // Check which kind of graph needs to be displayed
         if(graph === "normal"){
             //position bars
             bars.attr("x", function(d, i){
@@ -522,8 +530,7 @@
                     return "#ccc";
                 }
             });
-        }
-        else if (graph === "diverging"){
+        } else if (graph === "diverging" && expressed === "Change in Breeding Birds"){
             //position bars
             bars.attr("x", function(d, i){
                 return i * (chartInnerWidth / n) + leftPadding;
@@ -533,8 +540,43 @@
                 if (d[expressed] > 0){
                     return chartHeight - yScale(parseFloat(d[expressed])) - chartHeight/3 - topBottomPadding;
                 } else if (d[expressed] < 0) {
-                    console.log(Math.abs(yScale(parseFloat(d[expressed]))));
                     return Math.abs(yScale(parseFloat(d[expressed]))) - chartHeight/1.5 + topBottomPadding;
+                } else {
+                    return 1;
+                }
+            })
+            .attr("y", function(d, i){
+                if (d[expressed] > 0){
+                    return yScale(parseFloat(d[expressed])) + topBottomPadding;
+                } else if (d[expressed] < 0) {
+                    return yScale(parseFloat(0)) + topBottomPadding + 1;
+                } else {
+                    return yScale(parseFloat(0)) + topBottomPadding;
+                }
+            })
+            //color/recolor bars
+            .style("fill", function(d){
+                var value = d[expressed];
+                if(value == 0) {
+                    return "#fff"
+                } else if (value > 0 || value < 0) {
+                    return colorScale(value);
+                } else {
+                    return "#ccc";
+                }
+            });
+        } else if (graph === "diverging" && expressed === "Change in Observed Birds"){
+            //position bars
+            bars.attr("x", function(d, i){
+                return i * (chartInnerWidth / n) + leftPadding;
+            })
+            //size/resize bars
+            .attr("height", function(d, i){
+                if (d[expressed] > 0){
+                    return chartHeight - yScale(parseFloat(d[expressed])) - chartHeight/4 - topBottomPadding;
+                } else if (d[expressed] < 0) {
+                    console.log(Math.abs(yScale(parseFloat(d[expressed]))));
+                    return Math.abs(yScale(parseFloat(d[expressed]))) - chartHeight/1.345 + topBottomPadding;
                 } else {
                     return 1;
                 }
@@ -634,7 +676,12 @@
         //horizontal label coordinate, testing for overflow
         var x = d3.event.clientX > window.innerWidth - labelWidth - 20 ? x2 : x1; 
         //vertical label coordinate, testing for overflow
-        var y = d3.event.clientY < 75 ? y2 : y1; 
+        var y = d3.event.clientY < 75 ? y2 : y1;
+
+        //Adjust for mobile screens
+        if ($(window).width() < 600){
+            x = $(window).width()/6;
+        }
     
         d3.select(".infolabel")
             .style("left", x + "px")
@@ -643,17 +690,19 @@
 
     //function to create a div for the background info
     function createBackgroundInfo(){
-        //add select element
+        //add select  and text
         $('body').append('<div id="background">The Wisconsin Breeding Bird Atlas \
         is a comprehensive field survey documenting the distribution and abundance \
         of birds breeding across the state. Birds are an essential part of Wisconsin’s \
-        culture and ecology. Yet many species face grave threats from habitat loss, climate \
-        change, and other human-caused pressures that nearly one-third are imperiled or will \
-        be without intervention. The first Wisconsin Breeding Bird Atlas was conducted from \
-        1995 until 2000 with the second Atlas following in 2015 until 2020. The information \
-        collected between the two surveys allow biologists to measure changes in bird populations \
-        from the first survey to the second and to measure future changes. These insights will help \
-        biolgists to identify the conservation needs of breeding birds and better meet those needs.</div>');
+        culture and ecology. However many species face grave threats from habitat loss, climate \
+        change, and other human-caused pressures.  Nearly one-third are or will become imperiled \
+        without intervention. The first Wisconsin Breeding Bird Atlas was conducted from \
+        1995 until 2000 followed by the second Atlas from 2015 until 2020. The information \
+        collected between the two surveys allows biologists to measure changes in bird populations \
+        from the first survey to the second and to predict future changes. These insights will help \
+        biologists identify the conservation needs of breeding birds and better meet those needs.\
+        <br><br><a style="font-size: 16px;">Data Source: eBird, Wisconsin Breeding Bird Atlas - <a style="font-size: 16px;" href="https://ebird.org/atlaswi/state/US-WI" target="_blank">https://ebird.org/atlaswi/state/US-WI</a>\
+        <br><a style="font-size: 16px;">Map Author: Josh Seibel, 2020</a></div>');
     };
 
     //function to create a div for the current data display info
@@ -664,7 +713,7 @@
         $('#info-wrapper').append('<div id="datainfo">*The number of confirmed breeding bird species within the county during Atlas 2.</div>');
     };
 
-    //function to create a div for the current data display info
+    //function to update the DataInfo div with the current data display info
     function updateDataInfo(expressed){
         //change data contents
         if (expressed === "Breeding Species: BBA2"){
