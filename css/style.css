@@ -1,5 +1,9 @@
+body {
+    background-color: #d4cbb8;
+}
+
 .states {
-    fill: rgb(204, 204, 204);
+    fill: rgb(190, 190, 190);
     stroke: rgb(151, 151, 151);
     stroke-width: 1px;
 }
