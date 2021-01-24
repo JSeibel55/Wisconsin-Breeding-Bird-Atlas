@@ -1,5 +1,5 @@
 body {
-    background-color: #d4cbb8;
+    background-color: #ebe5dc;
 }
 
 .states {
@@ -104,7 +104,7 @@ option {
     max-width: 50%;
 }
 #background{
-    margin: 50px 20px 0 20px;
+    margin: 50px 20px 20px 20px;
     font-size: 24px;
     padding: 20px;
     font-family: Verdana, sans-serif;
@@ -126,3 +126,14 @@ option {
   @media screen and (max-width: 1100px) {
     .chartTitle {font-size: 1em;}
   }
+
+/* Modal that activates if user is on mobile device*/
+#mobile-screen {
+    background-color: #ebe5dc;
+}
+#mobile-screen-content {
+    background-color:#b9ae9e;
+    text-align: center;
+    margin: auto;
+    width: 80vw;
+}

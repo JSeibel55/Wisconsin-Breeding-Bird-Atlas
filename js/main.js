@@ -741,3 +741,16 @@
     };
 
 })(); //last line of main.js
+
+
+// Open popup warning to view on desktop if user opens in mobile
+// Otherwise Splash Screen when start
+$(window).on("resize load", function () {
+    if ($( window ).width() <= 600) {
+        $('#mobile-screen').modal('show');
+        $('#splash-screen').modal('hide');
+    } else if ($( window ).width() > 600){
+        $('#mobile-screen').modal('hide');
+        $('#splash-screen').modal('show');
+    }
+});

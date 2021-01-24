@@ -6,11 +6,24 @@
             <title>Wisconsin Breeding Bird Atlas</title>
 
         <!--External stylesheet links-->
+        <link rel="stylesheet" href="lib/bootstrap/css/bootstrap.min.css">
         <link rel="stylesheet" href="css/style.css">
         
     </head>
 
     <body>
+        <!-- Mobil Modal -->
+        <div class="modal fade" id="mobile-screen" tabindex="-1" role="dialog" aria-labelledby="mobile-screen" aria-hidden="true" data-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                <div class="modal-content" id="mobile-screen-content">
+                    <div class="modal-body">
+                        <h6 style="font-weight: bold;">Please use a laptop or desktop.</h6>
+                        <p>At this time, Wisconsin's Breeding Bird Atlas, is not built to be viewed on a mobile device.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="title">Wisconsin's Breeding Bird Atlas</div>
 
         <!--External script links-->
@@ -18,6 +31,7 @@
         <script type="text/javascript" src="lib/topojson.js"></script>
         <script src="https://unpkg.com/simple-statistics@7.0.8/dist/simple-statistics.min.js"></script>
         <script type="text/javascript" src="lib/jquery-3.4.1.js"></script>
+        <script type="text/javascript" src="lib/bootstrap/js/bootstrap.min.js"></script>
         <script type="text/javascript" src="js/main.js"></script>
     </body>
 </html>
