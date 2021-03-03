@@ -690,7 +690,7 @@
 
     //function to create a div for the background info
     function createBackgroundInfo(){
-        //add select  and text
+        //add text
         $('body').append('<div id="background">The Wisconsin Breeding Bird Atlas \
         is a comprehensive field survey documenting the distribution and abundance \
         of birds breeding across the state. Birds are an essential part of Wisconsin’s \
